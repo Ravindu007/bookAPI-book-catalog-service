@@ -15,9 +15,12 @@ import lombok.NoArgsConstructor;
 public class BookCatalog {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer catalogId;
+
     private String title;
     private String author;
     private String isbn;
     private double price;
+
 }

@@ -50,6 +50,7 @@ public class BookCatalogService {
             //get that book with same title and show it is existing
             serviceResponseDto.setMessage("A Book is Existing with Same title");
 
+            //returning details about existing catalog
             Integer bookCatalogId = bookCatalogRepo.findByTitle(catalog.getTitle());
             BookCatalog existingBook = bookCatalogRepo.findById(bookCatalogId).get();
             serviceResponseDto.setContent(existingBook);
@@ -64,9 +65,8 @@ public class BookCatalogService {
                 return serviceResponseDto;
             }else{
                 bookCatalogRepo.save(modelMapper.map(catalog, BookCatalog.class));//save book
-                BookCatalog bookCatalog = bookCatalogRepo.findById(catalog.getCatalogId()).get();
                 serviceResponseDto.setMessage("A New Book is Created");
-                serviceResponseDto.setContent(bookCatalog);
+                serviceResponseDto.setContent(catalog);
                 return serviceResponseDto;
             }
         }
