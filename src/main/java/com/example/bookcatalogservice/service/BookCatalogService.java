@@ -4,6 +4,7 @@ import com.example.bookcatalogservice.dto.BookCatalogDto;
 import com.example.bookcatalogservice.dto.ResponseDto;
 import com.example.bookcatalogservice.dto.ServiceResponseDto;
 import com.example.bookcatalogservice.entity.BookCatalog;
+import com.example.bookcatalogservice.feign.InventoryServicesInterface;
 import com.example.bookcatalogservice.repo.BookCatalogRepo;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
@@ -26,6 +27,9 @@ public class BookCatalogService {
 
     @Autowired
     private ServiceResponseDto serviceResponseDto;
+
+    @Autowired
+    private InventoryServicesInterface inventoryServicesInterface;
 
 
 
@@ -84,10 +88,22 @@ public class BookCatalogService {
 
     public ServiceResponseDto deleteCatalog(Integer catalogId){
         if(bookCatalogRepo.existsById(catalogId)){
-            bookCatalogRepo.deleteById(catalogId);
-            serviceResponseDto.setMessage("Catalog Deleted Successfully");
-            serviceResponseDto.setContent(null);
-            return serviceResponseDto;
+
+            //if the book-stock has books in the catalog => we do not give permission to delete catalog
+            Boolean permission =  inventoryServicesInterface.checkStockLevelsBeforeDeleting(catalogId);
+            if(permission){
+                bookCatalogRepo.deleteById(catalogId);
+                serviceResponseDto.setMessage("Catalog Deleted Successfully");
+                serviceResponseDto.setContent(null);
+                return serviceResponseDto;
+            }else{
+                serviceResponseDto.setMessage("Catalog Cant be Deleted as Stock is available");
+                serviceResponseDto.setContent(null);
+                return serviceResponseDto;
+            }
+
+
+
         }else{
             serviceResponseDto.setMessage("Catalog with that ID does not exists");
             serviceResponseDto.setContent(null);
