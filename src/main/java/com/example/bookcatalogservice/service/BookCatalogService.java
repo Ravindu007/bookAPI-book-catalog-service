@@ -1,6 +1,7 @@
 package com.example.bookcatalogservice.service;
 
 import com.example.bookcatalogservice.dto.BookCatalogDto;
+import com.example.bookcatalogservice.dto.BookCatalogWrapper;
 import com.example.bookcatalogservice.dto.ResponseDto;
 import com.example.bookcatalogservice.dto.ServiceResponseDto;
 import com.example.bookcatalogservice.entity.BookCatalog;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -48,13 +50,26 @@ public class BookCatalogService {
 
         if(checkABookExistsByTitle(catalog.getTitle())){ // check a book is existing with same title
             //get that book with same title and show it is existing
-            serviceResponseDto.setMessage("A Book is Existing with Same title");
 
             //returning details about existing catalog
-            Integer bookCatalogId = bookCatalogRepo.findByTitle(catalog.getTitle());
+            Integer bookCatalogId = bookCatalogRepo.findLastRecordByTitle(catalog.getTitle());
             BookCatalog existingBook = bookCatalogRepo.findById(bookCatalogId).get();
-            serviceResponseDto.setContent(existingBook);
-            return serviceResponseDto;
+
+            Boolean isCatalogDeleted = existingBook.getIsDeleted();
+            System.out.println(isCatalogDeleted);
+
+            if(isCatalogDeleted){
+                bookCatalogRepo.save(modelMapper.map(catalog, BookCatalog.class));//save book
+                serviceResponseDto.setMessage("A New Book is Created");
+                serviceResponseDto.setContent(catalog);
+                return serviceResponseDto;
+            }else{
+                serviceResponseDto.setMessage("A Book is Existing with Same title");
+                serviceResponseDto.setContent(existingBook);
+                return serviceResponseDto;
+            }
+
+
 
         }else{
             if(bookCatalogRepo.existsById(catalog.getCatalogId())){//check for existing id
@@ -73,14 +88,25 @@ public class BookCatalogService {
     }
 
     public ServiceResponseDto getAllBookCatalogs() {
-        List<BookCatalog> availableBookCatalogList = bookCatalogRepo.findAll();
+        List<BookCatalog> availableBookCatalogList = bookCatalogRepo.findAllExistingCatalogs();
+        //wrap the catalogList to  be sent
+        List<BookCatalogWrapper> bookCatalogList = new ArrayList<>();
+
+        for(BookCatalog singleCatalog:availableBookCatalogList){
+            BookCatalogWrapper cw = new BookCatalogWrapper(
+                singleCatalog.getCatalogId(),
+                singleCatalog.getTitle()
+            );
+            bookCatalogList.add(cw);
+        }
+
         if(availableBookCatalogList.isEmpty()){
-            serviceResponseDto.setContent(availableBookCatalogList);
+            serviceResponseDto.setContent(bookCatalogList);
             serviceResponseDto.setMessage("There are No Book Catalogs Available");
             return serviceResponseDto;
         }else{
-            serviceResponseDto.setContent(availableBookCatalogList);
-            serviceResponseDto.setMessage("These are are the available Book Catalogs");
+            serviceResponseDto.setContent(bookCatalogList);
+            serviceResponseDto.setMessage("These are the available Book Catalogs");
             return serviceResponseDto;
         }
     }
@@ -89,20 +115,31 @@ public class BookCatalogService {
     public ServiceResponseDto deleteCatalog(Integer catalogId){
         if(bookCatalogRepo.existsById(catalogId)){
 
-            //if the book-stock has books in the catalog => we do not give permission to delete catalog
-            Boolean permission =  inventoryServicesInterface.checkStockLevelsBeforeDeleting(catalogId);
-            if(permission){
-                bookCatalogRepo.deleteById(catalogId);
+            //check weather a stock is available for this catalogId
+            if(inventoryServicesInterface.checkStockAvailability(catalogId)){
+                //if the book-stock has books in the catalog => we do not give permission to delete catalog
+                Boolean permission =  inventoryServicesInterface.checkStockLevelsBeforeDeleting(catalogId);
+                if(permission){
+                    BookCatalog existingCatalog =  bookCatalogRepo.findById(catalogId).get();
+                    existingCatalog.setIsDeleted(true); //set a flag as deleted
+                    bookCatalogRepo.save(existingCatalog);
+                    serviceResponseDto.setMessage("Catalog Deleted Successfully");
+                    serviceResponseDto.setContent(null);
+                    return serviceResponseDto;
+                }else{
+                    serviceResponseDto.setMessage("Catalog Cant be Deleted as Stock is available");
+                    serviceResponseDto.setContent(null);
+                    return serviceResponseDto;
+                }
+            }else{
+                //even a stock is not existing but catalog existing we delete it
+                BookCatalog existingCatalog =  bookCatalogRepo.findById(catalogId).get();
+                existingCatalog.setIsDeleted(true); //set a flag as deleted
+                bookCatalogRepo.save(existingCatalog);
                 serviceResponseDto.setMessage("Catalog Deleted Successfully");
                 serviceResponseDto.setContent(null);
                 return serviceResponseDto;
-            }else{
-                serviceResponseDto.setMessage("Catalog Cant be Deleted as Stock is available");
-                serviceResponseDto.setContent(null);
-                return serviceResponseDto;
             }
-
-
 
         }else{
             serviceResponseDto.setMessage("Catalog with that ID does not exists");
@@ -131,5 +168,15 @@ public class BookCatalogService {
     //service for inventory-service
     public Boolean checkCatalogExists(Integer catalogId) {
         return bookCatalogRepo.existsById(catalogId);
+    }
+
+    public Boolean checkIsCatalogDeleted(Integer catalogId) {
+        BookCatalog existingCatalog = bookCatalogRepo.findById(catalogId).get();
+        Boolean isDeleted = existingCatalog.getIsDeleted();
+        if(isDeleted){
+            return true;
+        }else{
+            return false;
+        }
     }
 }

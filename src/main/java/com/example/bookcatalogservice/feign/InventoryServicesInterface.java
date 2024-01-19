@@ -8,4 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 public interface InventoryServicesInterface {
     @GetMapping("api/v1/inventory/checkStockLevelsBeforeDeleting/{catalogId}")
     public Boolean checkStockLevelsBeforeDeleting(@PathVariable Integer catalogId);
+
+    @GetMapping("api/v1/inventory/checkStockAvailability/{stockId}")
+    public Boolean checkStockAvailability(@PathVariable Integer stockId);
 }

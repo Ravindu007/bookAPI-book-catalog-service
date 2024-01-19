@@ -1,9 +1,6 @@
 package com.example.bookcatalogservice.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -22,5 +19,9 @@ public class BookCatalog {
     private String author;
     private String isbn;
     private double price;
+
+    //auditing columns
+    @Column(columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean isDeleted = false;
 
 }

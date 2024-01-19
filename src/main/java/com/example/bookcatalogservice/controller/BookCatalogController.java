@@ -54,7 +54,7 @@ public class BookCatalogController {
         }
     }
 
-    @DeleteMapping(value = "/deleteCatalog/{catalogId}")
+    @PutMapping(value = "/deleteCatalog/{catalogId}")
     public ResponseEntity<ResponseDto> deleteCatalog(@PathVariable Integer catalogId){
         try{
             ServiceResponseDto res = bookCatalogService.deleteCatalog(catalogId);
@@ -88,6 +88,11 @@ public class BookCatalogController {
     @GetMapping(value = "/getSingleCatalog/{catalogId}")
     public Boolean checkCatalogIdExists(@PathVariable Integer catalogId){
         return bookCatalogService.checkCatalogExists(catalogId);
+    }
+
+    @GetMapping(value = "/checkIsCatalogDeleted/{catalogId}")
+    public Boolean checkIsCatalogDeleted(@PathVariable Integer catalogId){
+        return bookCatalogService.checkIsCatalogDeleted(catalogId);
     }
 
 }
